@@ -1,0 +1,58 @@
+#include <Servo.h>
+
+// --- SET YOUR TIME HERE ---
+// 10000 = 10 seconds (for testing)
+// 43200000 = 12 hours (for real use)
+const unsigned long INTERVAL = 30000; 
+
+const int buttonPin = 2; 
+const int buzzerPin = 8; 
+const int servoPin  = 9; 
+
+Servo myServo;
+unsigned long previousMillis = 0;
+bool isAlarmActive = false;
+
+void setup() {
+  // INPUT_PULLUP is vital—it tells the Arduino to watch for the Switch to hit GND
+  pinMode(buttonPin, INPUT_PULLUP); 
+  pinMode(buzzerPin, OUTPUT);
+  
+  myServo.attach(servoPin);
+  myServo.write(0); // Start at closed position
+  
+  Serial.begin(9600);
+  Serial.println("System Online. Medicine will dispense every 10 seconds.");
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  // 1. Check if it's time to dispense
+  if (currentMillis - previousMillis >= INTERVAL) {
+    previousMillis = currentMillis;
+    dispenseMedicine();
+  }
+
+  // 2. Alarm System (Active after dispensing)
+  if (isAlarmActive) {
+    // This makes the buzzer beep without using "delay" 
+    // This allows the button to be heard INSTANTLY
+    digitalWrite(buzzerPin, (millis() / 250) % 2); 
+
+    // Check if the 4-legged switch is pressed
+    if (digitalRead(buttonPin) == LOW) {
+      isAlarmActive = false;
+      digitalWrite(buzzerPin, LOW); // Silence the buzzer
+      Serial.println("Medicine taken! Alarm reset.");
+    }
+  }
+}
+
+void dispenseMedicine() {
+  Serial.println("Dispensing Medicine Now...");
+  myServo.write(90); // Rotate to drop pill
+  delay(1000);       // Wait for pill to fall
+  myServo.write(0);  // Return to start
+  isAlarmActive = true; // Start the buzzer
+}
